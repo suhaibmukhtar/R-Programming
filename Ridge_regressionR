@@ -1,0 +1,109 @@
+# Load Required Libraries
+library(caret)
+library(glmnet)
+
+# Assuming you have your data loaded and preprocessed
+# X contains the features, and y contains the binary target variable (1 for heartstroke, 0 for no heartstroke)
+
+# Set Up Grid Search Parameters
+alpha_grid <- 10^seq(-2, 2, by = 0.1)
+param_grid <- expand.grid(alpha = alpha_grid)
+
+# Set Up Cross-Validation
+folds <- createFolds(y, k = 5, list = TRUE, returnTrain = FALSE)
+ctrl <- trainControl(method = "cv", index = folds, repeats = 2)
+
+# Perform Grid Search CV with Ridge Regression
+ridge_grid <- train(
+  x = X,
+  y = y,
+  method = "glmnet",
+  tuneGrid = param_grid,
+  trControl = ctrl
+)
+
+# Get the Best Model
+best_model <- ridge_grid$bestTune
+best_alpha <- best_model$alpha
+
+# Train the Final Model
+final_model <- glmnet(
+  x = X,
+  y = y,
+  alpha = best_alpha,
+  family = "binomial"  # Binary classification
+)
+
+# Evaluate the Model
+# For binary classification, you can use metrics like accuracy, sensitivity, specificity, etc., on test data
+predictions <- predict(final_model, newx = X, type = "response")  # Get predicted probabilities
+predicted_classes <- ifelse(predictions > 0.5, 1, 0)  # Convert probabilities to binary classes
+accuracy <- mean(predicted_classes == y)  # Calculate accuracy
+
+
+
+## using Ridge regression
+
+# Load Required Libraries
+library(caret)
+library(glmnet)
+library(pROC)  # For AUC calculation
+library(e1071)  # For confusion matrix
+
+# Assuming you have your data loaded and preprocessed
+# X contains the features, and y contains the binary target variable (1 for heartstroke, 0 for no heartstroke)
+
+# Set Up Grid Search Parameters
+alpha_grid <- 10^seq(-2, 2, by = 0.1)
+param_grid <- expand.grid(alpha = alpha_grid)
+
+# Set Up Cross-Validation
+folds <- createFolds(y, k = 5, list = TRUE, returnTrain = FALSE)
+ctrl <- trainControl(method = "cv", index = folds, repeats = 2)
+
+# Perform Grid Search CV with Ridge Regression
+ridge_grid <- train(
+  x = X,
+  y = y,
+  method = "glmnet",
+  tuneGrid = param_grid,
+  trControl = ctrl
+)
+
+# Get the Best Model
+best_model <- ridge_grid$bestTune
+best_alpha <- best_model$alpha
+
+# Train the Final Model
+final_model <- glmnet(
+  x = X,
+  y = y,
+  alpha = best_alpha,
+  family = "binomial"  # Binary classification
+)
+
+# Evaluate the Model
+# Get predicted probabilities
+predictions <- predict(final_model, newx = X, type = "response")
+predicted_classes <- ifelse(predictions > 0.5, 1, 0)
+
+# Calculate accuracy
+accuracy <- mean(predicted_classes == y)
+
+# Calculate AUC
+roc_obj <- roc(y, predictions)
+auc <- auc(roc_obj)
+
+# Generate classification report
+class_report <- caret::confusionMatrix(table(predicted_classes, y))
+
+# Generate confusion matrix
+conf_matrix <- confusionMatrix(predicted_classes, y)
+
+# Print the evaluation metrics
+print(paste("Accuracy:", accuracy))
+print(paste("AUC:", auc))
+print("Classification Report:")
+print(class_report)
+print("Confusion Matrix:")
+print(conf_matrix)
