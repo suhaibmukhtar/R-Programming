@@ -1,0 +1,49 @@
+# Load Required Libraries
+library(caret)
+library(randomForest)
+
+# Assuming you have your data loaded and preprocessed
+# X contains the features, and y contains the binary target variable (1 for heartstroke, 0 for no heartstroke)
+
+# Set Up Grid Search Parameters
+grid <- expand.grid(
+  mtry = c(2, 3, 4),  # Number of variables randomly sampled as candidates at each split
+  nodesize = c(5, 10, 15)  # Minimum size of terminal nodes
+)
+
+# Set Up Cross-Validation
+folds <- createFolds(y, k = 5, list = TRUE, returnTrain = FALSE)
+ctrl <- trainControl(method = "cv", index = folds, repeats = 2)
+
+# Perform Grid Search CV with Random Forest Regression
+rf_grid <- train(
+  x = X,
+  y = y,
+  method = "rf",
+  trControl = ctrl,
+  tuneGrid = grid
+)
+
+# Get the Best Model
+best_model <- rf_grid$bestTune
+best_mtry <- best_model$mtry
+best_nodesize <- best_model$nodesize
+
+# Train the Final Model with the Best Parameters
+final_model <- randomForest(
+  x = X,
+  y = y,
+  mtry = best_mtry,
+  nodesize = best_nodesize
+)
+
+# Make Predictions
+predicted <- predict(final_model, newdata = X)
+
+# Calculate Accuracy Score (for regression, we can use metrics like RMSE, MAE, etc.)
+rmse <- sqrt(mean((predicted - y)^2))  # Root Mean Squared Error
+mae <- mean(abs(predicted - y))  # Mean Absolute Error
+
+# Print Evaluation Metrics
+print(paste("RMSE:", rmse))
+print(paste("MAE:", mae))
