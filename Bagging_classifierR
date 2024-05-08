@@ -1,0 +1,61 @@
+# Load Required Libraries
+library(caret)
+library(ipred)  # For Bagging classifier
+library(e1071)  # For confusion matrix
+
+# Assuming you have your data loaded and preprocessed
+# X contains the features, and y contains the binary target variable (1 for heartstroke, 0 for no heartstroke)
+
+# Set Up Grid Search Parameters
+grid <- expand.grid(
+  nbags = c(25, 50, 75),  # Number of bags
+  minsplit = c(1, 5, 10),  # Minimum number of observations in a node
+  cp = c(0.01, 0.05, 0.1)  # Complexity parameter for tree models
+)
+
+# Set Up Cross-Validation
+folds <- createFolds(y, k = 5, list = TRUE, returnTrain = FALSE)
+ctrl <- trainControl(method = "cv", index = folds, repeats = 2)
+
+# Perform Grid Search CV with Bagging Classifier
+bagging_grid <- train(
+  x = X,
+  y = y,
+  method = "bag",
+  trControl = ctrl,
+  tuneGrid = grid
+)
+
+# Get the Best Model
+best_model <- bagging_grid$bestTune
+best_nbags <- best_model$nbags
+best_minsplit <- best_model$minsplit
+best_cp <- best_model$cp
+
+# Train the Final Model with the Best Parameters
+final_model <- bagging(
+  formula = y ~ .,  # Assuming all features are used
+  data = data.frame(X, y),  # Combine features and target into a data frame
+  nbagg = best_nbags,
+  mfinal = best_minsplit,
+  cp = best_cp
+)
+
+# Make Predictions
+predicted <- predict(final_model, newdata = X)
+
+# Calculate Accuracy Score
+accuracy <- sum(predicted == y) / length(y)
+
+# Generate Confusion Matrix
+conf_matrix <- confusionMatrix(predicted, y)
+
+# Generate Classification Report
+class_report <- caret::confusionMatrix(table(predicted, y))
+
+# Print Evaluation Metrics
+print(paste("Accuracy:", accuracy))
+print("Confusion Matrix:")
+print(conf_matrix)
+print("Classification Report:")
+print(class_report)
